@@ -1,5 +1,8 @@
 use regex::{escape, Captures, Error as RegexError, Regex};
 use std::str::{self, FromStr, Utf8Error};
+use std::collections::HashMap;
+extern crate serde_json;
+use self::serde_json::{Map, Value};
 
 #[derive(Debug, Fail)]
 pub enum FormatParserError {
@@ -75,6 +78,30 @@ impl Format {
     pub fn parse<'a>(&self, line: &'a str) -> Option<Entry<'a>> {
         // TODO: i do not want to use regex here but i'm not smart enough to write my own parser
         self.re.captures(line).map(|captures| Entry { captures })
+    }
+
+    pub fn parse_to_value(re: String, log: String) -> Result<serde_json::value::Value, serde_json::Error> {
+        let mut hash: HashMap<&str, &str> = HashMap::new();
+        let mut map = Map::new();
+
+        let mut output = serde_json::value::Value::from_str("{}").unwrap();
+        let re = Regex::new(r"was (?P<year>\d+)").unwrap();
+
+        if let Some(captures) = re.captures("was 2022") {
+            for name in re.capture_names() {
+                if let Some(name) = name {
+                    if let Some(value) = captures.name(name) {
+                        map.insert(name.to_string(), Value::String(value.as_str().to_string()));
+                    }
+                }
+            }
+        }
+
+        println!("{:?}",map);
+        
+        let obj = Value::Object(map);
+
+        Ok(obj)
     }
 
     /// creates a format from a list of FormatParts. currently internal.
