@@ -1,6 +1,5 @@
 use regex::{escape, Captures, Error as RegexError, Regex};
 use std::str::{self, FromStr, Utf8Error};
-use std::collections::HashMap;
 extern crate serde_json;
 use self::serde_json::{Map, Value};
 
@@ -80,15 +79,11 @@ impl Format {
         self.re.captures(line).map(|captures| Entry { captures })
     }
 
-    pub fn parse_to_value(re: String, log: String) -> Result<serde_json::value::Value, serde_json::Error> {
-        let mut hash: HashMap<&str, &str> = HashMap::new();
+    pub fn parse_to_value<'a>(&self, log: &'a str) -> Result<serde_json::value::Value, serde_json::Error> {
         let mut map = Map::new();
 
-        let mut output = serde_json::value::Value::from_str("{}").unwrap();
-        let re = Regex::new(r"was (?P<year>\d+)").unwrap();
-
-        if let Some(captures) = re.captures("was 2022") {
-            for name in re.capture_names() {
+        if let Some(captures) = self.re.captures(log) {
+            for name in self.re.capture_names() {
                 if let Some(name) = name {
                     if let Some(value) = captures.name(name) {
                         map.insert(name.to_string(), Value::String(value.as_str().to_string()));
@@ -96,8 +91,6 @@ impl Format {
                 }
             }
         }
-
-        println!("{:?}",map);
         
         let obj = Value::Object(map);
 
